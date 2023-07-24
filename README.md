@@ -120,7 +120,7 @@
     - [GitLab Basics](https://docs.gitlab.com/ee/gitlab-basics/)
 
 6. **APIs**
-    - [Web API Design: The Missing Link](https://www.amazon.com/Web-API-Design-Missing-Link/dp/1491920548)
+    - [Web API Design: The Missing Link](https://cloud.google.com/static/files/apigee/apigee-web-api-design-the-missing-link-ebook.pdf)
 
 7. **Планировщики задач и инструменты для создания пайплайнов**
     - [SLURM Workload Manager](https://slurm.schedmd.com/overview.html)
