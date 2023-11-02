@@ -31,6 +31,10 @@
 
     var game = new Phaser.Game(config);
 
+    let savedHighScore = localStorage.getItem('doodleJumpHighScore');
+    highScore = savedHighScore ? parseInt(savedHighScore) : 0;
+
+
     function preload() {
         this.load.image('player', 'player.png');
         this.load.image('platform', 'platform.png');
@@ -41,7 +45,9 @@
     var cursors;
     var score = 0;
     var scoreText;
-    var highScore = 0;
+    var highestPosition = 0;
+    var lastPlatformY = 220; // initial platform position
+    const platformSpacing = 150; // spacing between platform
 
     function create() {
         // Создание основной земной платформы
@@ -53,10 +59,11 @@
     
         player = this.physics.add.sprite(400, 568 - 25 - 100, 'player');
         player.setBounce(0.2);
-        player.setCollideWorldBounds(true);
+        player.setCollideWorldBounds(false);
         player.displayWidth = 100; // Устанавливаем ширину игрока
         player.displayHeight = 100; // Устанавливаем высоту игрока
-        player.setVelocityY(-300);
+        player.setVelocityY(-500);
+
             
         // Добавление столкновения между игроком и платформами
         this.physics.add.collider(player, platforms);
@@ -81,7 +88,11 @@
             
         // Инициализация текста для отображения очков
         scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#FFF' });
-        highScore = player.y; // начальная наивысшая позиция игрока
+        // this.cameras.main.ignore(scoreText);
+        highestPosition = player.y; // начальная наивысшая позиция игрока
+
+        
+
     }
     
     function update() {
@@ -96,44 +107,84 @@
 
          // Проверка касается ли игрок платформы
         if (player.body.touching.down) {
-            player.setVelocityY(-330); // сила прыжка вверх
-            score += Math.round((player.y) / 10);
+            player.setVelocityY(-500); // сила прыжка вверх
         }
     
         // Обработка прыжка
         if (cursors.up.isDown && player.body.touching.down) {
-            player.setVelocityY(-400); // сила прыжка
+            player.setVelocityY(-800); // сила прыжка
         }
 
-         // Обновление очков если игрок поднимается выше
-        if (player.y < highScore) {
-            score += Math.round((highScore - player.y) / 10); // Начисляем очки за высоту
-            highScore = player.y; // Обновляем высоту для новых расчётов
+        // Обновление очков если игрок поднимается выше
+        if (player.y < highestPosition) {
+            score += Math.abs(Math.round(highestPosition - player.y)); // Начисляем очки за высоту
+            highestPosition = player.y; // Обновляем высоту для новых расчётов
             scoreText.setText('Score: ' + score); // Обновляем текст очков
         }
 
-            // Проверка на смерть
+        // Continuous camera scroll
+        if (player.y < game.config.height / 2) {
+            this.cameras.main.scrollY = player.y - game.config.height / 2;
+        }
+
+        // Continuous platform generation
+        if (lastPlatformY - this.cameras.main.scrollY > platformSpacing) {
+            createPlatform(lastPlatformY - platformSpacing);
+        }
+
+        // Check if player goes beyond the left side
+        if (player.x < -player.displayWidth / 2) {
+            player.x = game.config.width + player.displayWidth / 2;
+        }
+
+        // Check if player goes beyond the right side
+        if (player.x > game.config.width + player.displayWidth / 2) {
+            player.x = -player.displayWidth / 2;
+        }
+
+        // Проверка на смерть
         if (player.y > game.config.height - 60 && !this.gameOver) {
             this.gameOver = true; // Пометить, что игра окончена
             this.physics.pause(); // Остановить физику
             player.setTint(0xff0000); // Подсветка игрока красным цветом
-            highScore = Math.max(score, highScore);
+
+            if (score > parseInt(localStorage.getItem('doodleJumpHighScore'))) {
+                localStorage.setItem('doodleJumpHighScore', score);
+            }
+
+            let storedHighScore = localStorage.getItem('doodleJumpHighScore');
+            let highScoreText = this.add.text(400, 400, "High score is: " + storedHighScore, { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5);
+            
             score = 0;
+            highestPosition = 0;
+            lastPlatformY = 220; // initial platform position
              
             
             // Отображение текста Game Over
             let gameOverText = this.add.text(400, 300, 'Game Over', { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5);
             let restartText = this.add.text(400, 350, 'Play Again', { fontSize: '26px', fill: '#FFF' }).setOrigin(0.5).setInteractive();
-            let highScoreText = this.add.text(400, 400, "High score is: " + highScore, { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5)
 
             // Обработка клика по тексту Play Again для перезапуска сцены
             restartText.on('pointerdown', () => {
                 this.gameOver = false; // Сброс флага gameOver
                 this.scene.restart(); // Перезапуск сцены
             });
+
+            
         }
+
+        scoreText.setY(16 + this.cameras.main.scrollY);
     }
     
+    function createPlatform(y) {
+        let x = Phaser.Math.Between(50, game.config.width - 50);
+        let platform = platforms.create(x, y, 'platform');
+        platform.displayWidth = Phaser.Math.Between(100, 200);
+        platform.displayHeight = 25;
+        platform.refreshBody();
+        lastPlatformY = y;  // Update the last platform position
+        return platform;
+    }
     
 </script>
 
