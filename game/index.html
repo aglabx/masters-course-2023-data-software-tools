@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Doodle Jump Clone</title>
+    <style>
+        body { margin: 0; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+    var config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 300 },
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    var game = new Phaser.Game(config);
+
+    function preload() {
+        this.load.image('player', 'images/player.png');
+        this.load.image('platform', 'images/platform.png');
+    }
+
+    var player;
+    var platforms;
+    var cursors;
+    var score = 0;
+    var scoreText;
+    var highScore = 0;
+
+    function create() {
+        // Создание основной земной платформы
+        platforms = this.physics.add.staticGroup();
+        var ground = platforms.create(400, 568, 'platform'); // Создаём платформу
+        ground.displayWidth = 200; // Устанавливаем ширину платформы
+        ground.displayHeight = 50; // Устанавливаем высоту платформы
+        ground.refreshBody(); // Обновляем физическое тело платформы
+    
+        player = this.physics.add.sprite(400, 568 - 25 - 100, 'player');
+        player.setBounce(0.2);
+        player.setCollideWorldBounds(true);
+        player.displayWidth = 100; // Устанавливаем ширину игрока
+        player.displayHeight = 100; // Устанавливаем высоту игрока
+        player.setVelocityY(-300);
+            
+        // Добавление столкновения между игроком и платформами
+        this.physics.add.collider(player, platforms);
+    
+        // Генерация дополнительных платформ
+        const platformPositions = [
+            { x: 400, y: 400 }, 
+            { x: 600, y: 300 }, 
+            { x: 100, y: 220 }, 
+            // Добавьте больше платформ с координатами x и y по желанию
+        ];
+    
+        platformPositions.forEach(pos => {
+            let platform = platforms.create(pos.x, pos.y, 'platform');
+            platform.displayWidth = 150; // Устанавливаем ширину платформы
+            platform.displayHeight = 25; // Устанавливаем высоту платформы
+            platform.refreshBody(); // Обновляем физическое тело платформы
+        });
+
+        // Создание объектов управления
+        cursors = this.input.keyboard.createCursorKeys();
+            
+        // Инициализация текста для отображения очков
+        scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#FFF' });
+        highScore = player.y; // начальная наивысшая позиция игрока
+    }
+    
+    function update() {
+        // Обработка движений игрока влево и вправо
+        if (cursors.left.isDown) {
+            player.setVelocityX(-160); // движение влево
+        } else if (cursors.right.isDown) {
+            player.setVelocityX(160); // движение вправо
+        } else {
+            player.setVelocityX(0); // остановка
+        }
+
+         // Проверка касается ли игрок платформы
+        if (player.body.touching.down) {
+            player.setVelocityY(-330); // сила прыжка вверх
+            score += Math.round((player.y) / 10);
+        }
+    
+        // Обработка прыжка
+        if (cursors.up.isDown && player.body.touching.down) {
+            player.setVelocityY(-400); // сила прыжка
+        }
+
+         // Обновление очков если игрок поднимается выше
+        if (player.y < highScore) {
+            score += Math.round((highScore - player.y) / 10); // Начисляем очки за высоту
+            highScore = player.y; // Обновляем высоту для новых расчётов
+            scoreText.setText('Score: ' + score); // Обновляем текст очков
+        }
+
+            // Проверка на смерть
+        if (player.y > game.config.height - 60 && !this.gameOver) {
+            this.gameOver = true; // Пометить, что игра окончена
+            this.physics.pause(); // Остановить физику
+            player.setTint(0xff0000); // Подсветка игрока красным цветом
+            highScore = Math.max(score, highScore);
+            score = 0;
+             
+            
+            // Отображение текста Game Over
+            let gameOverText = this.add.text(400, 300, 'Game Over', { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5);
+            let restartText = this.add.text(400, 350, 'Play Again', { fontSize: '26px', fill: '#FFF' }).setOrigin(0.5).setInteractive();
+            let highScoreText = this.add.text(400, 400, "High score is: " + highScore, { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5)
+
+            // Обработка клика по тексту Play Again для перезапуска сцены
+            restartText.on('pointerdown', () => {
+                this.gameOver = false; // Сброс флага gameOver
+                this.scene.restart(); // Перезапуск сцены
+            });
+        }
+    }
+    
+    
+</script>
+
+</body>
+</html>
